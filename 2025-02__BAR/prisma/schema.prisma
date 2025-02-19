@@ -28,41 +28,42 @@ datasource db {
 // .quit
 
 model Drink {
-  id      Int @id @default(autoincrement())
+  id      Int          @id @default(autoincrement())
   name    String
   ml      Float
   price   Float
   alcohol Float
-  order OrderDrink[]
+  order   DrinkOrder[]
 }
 
 model Order {
-  id  Int @id @default(autoincrement())
-  createdAt DateTime  @default(now())
-  drinks OrderDrink[]
-  customerId  Int
+  id         Int          @id @default(autoincrement())
+  createdAt  DateTime     @default(now())
+  drinks     DrinkOrder[]
+  customerId Int
 
   customer User @relation("CustomerOrders", fields: [customerId], references: [id])
 }
 
 // Model für n:m Beziehung
-model OrderDrink {
-  orderId Int
-  drinkId Int
-  quantity  Int
+model DrinkOrder {
+  orderId  Int
+  drinkId  Int
+  quantity Int
 
   // onDelete: Cascade löscht das OrderDrink Element, wenn die entsprechende Order gelöscht wird
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
   drink Drink @relation(fields: [drinkId], references: [id])
 
   @@id([orderId, drinkId])
+  @@map("OrderDrink")
 }
 
 // Wenn wir Order verändern, müssen die bestehenden Einträge aus der DB gelöscht werden!
 model User {
-  id  Int @id @default(autoincrement())
-  name  String
-  email String  @unique
-  password  String
-  createdOrders  Order[]  @relation("CustomerOrders")
+  id            Int     @id @default(autoincrement())
+  name          String
+  email         String  @unique
+  password      String
+  createdOrders Order[] @relation("CustomerOrders")
 }

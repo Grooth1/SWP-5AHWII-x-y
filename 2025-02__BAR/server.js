@@ -4,15 +4,15 @@ const express = require("express");
 // npm install prisma --save-dev
 
 // npx prisma init --datasource-provider sqlite
-const { PrismaClient } = require("@prisma/client")
+const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 
 // Wird für das PW hashing genutzt
 // npm install bcrypt
-const bcrypt = require("bcrypt")
+const bcrypt = require("bcrypt");
 
-const cors = require("cors")
-const multer  = require('multer')
+const cors = require("cors");
+const multer = require('multer');
 
 // Nicht nutzen! Session stattdessen
 // https://www.npmjs.com/package/express-session
@@ -34,19 +34,19 @@ app.use(cors());
 
 const upload = multer({
     dest: "uploads/",
-    fileFilter: function(req, file, callback) {
-        let ext = path.extname(file.originalname)
-        if (ext !=='.png' && ext !== '.jpg' && ext !== '.gif' && ext !== '.jpeg') {
-            return callback(new Error('Only images allowed'))
+    fileFilter: function (req, file, callback) {
+        let ext = path.extname(file.originalname);
+        if (ext !== '.png' && ext !== '.jpg' && ext !== '.gif' && ext !== '.jpeg') {
+            return callback(new Error('Only images allowed'));
         }
-        callback(null, true)
+        callback(null, true);
     }
     // Hier können Dinge wie akzeptierte Dateiformate eingestellt werden
 });
 
-app.post("/menu/:id/upload", upload.single("image"), function(req, res) {
+app.post("/menu/:id/upload", upload.single("image"), function (req, res) {
     console.log(req.file);
-    const id = parseInt(req.params["id"])
+    const id = parseInt(req.params["id"]);
     const tempPath = req.file.path;
     // Baue den Zielpfad
     // Nimm den aktuellen Pfad von server.js
@@ -65,78 +65,93 @@ app.post("/menu/:id/upload", upload.single("image"), function(req, res) {
             data: {
                 imagePath: targetPath
             }
-        })
+        });
         res.send("File uploaded");
-    })
-})
+    });
+});
 
 app.post("/register", async function (req, res) {
     const { name, email, password } = req.body;
+
     const hashedPassword = await bcrypt.hash(password, 10);
     console.log(hashedPassword);
-    // Speichern des Hash in der DB
-    
-    // Hier wird die Session erzeugt und an den Client geschickt
-})
+    try {
+        await prisma.user.create({
+            data: {
+                name: name,
+                email: email,
+                password: hashedPassword
+            }
+        });
+        res.send("User created");
+
+    } catch (error) {
+        console.error('Error creating user:', error);
+        res.status(500).json({ error: "Error creating user", details: error.message });
+    }
+});
+// Speichern des Hash in der DB
+
+// Hier wird die Session erzeugt und an den Client geschickt
 
 app.post("/menu", async function (req, res) {
     const drink = req.body;
     const result = await prisma.drink.create({
         data: drink
-    })
-    res.send(result)
-})
+    });
+    res.send(result);
+});
 
 app.get("/menu", async function (req, res) {
-    const drinks = await prisma.drink.findMany()
-    res.json(drinks)
-})
+    const drinks = await prisma.drink.findMany();
+    res.json(drinks);
+});
 
 app.get("/menu/:id", async function (req, res) {
-    const id = req.params["id"]
+    const id = req.params["id"];
     try {
         const drink = await prisma.drink.findUniqueOrThrow({
             where: {
                 id: parseInt(id)
             }
-        })
-        res.json(drink)
+        });
+        res.json(drink);
     } catch (error) {
-        res.status(404).json({ error: "Drink not found" })
+        res.status(404).json({ error: "Drink not found" });
     }
-})
+});
 
 // Aufgabe: In try catch einbinden
 app.delete("/menu/:id", async function (req, res) {
-    const id = req.params["id"]
+    const id = req.params["id"];
     try {
         const result = await prisma.drink.delete({
             where: {
                 id: parseInt(id)
             }
-        })
-        res.json(result)
+        });
+        res.json(result);
     } catch (error) {
-        res.status(404).json({ error: "Drink not found" })
+        res.status(404).json({ error: "Drink not found" });
     }
-})
+});
 
 app.patch("/menu/:id", async function (req, res) {
-    const id = req.params["id"]
+    const id = req.params["id"];
     try {
-        const drink = req.body
+        const drink = req.body;
         const result = await prisma.drink.update({
             where: {
                 id: parseInt(id)
             },
             data: drink
-        })
+        });
 
-        res.json(result)
+        res.json(result);
     } catch (error) {
-        res.status(404).json({ error: "Drink not found" })
+        res.status(404).json({ error: "Drink not found" });
     }
-})
+});
 
 /* Wichtig: In einer Order darf ein Drink nicht doppelt vorkommen!
 {
@@ -148,10 +163,10 @@ app.patch("/menu/:id", async function (req, res) {
         {...}
     ]
 }
-
+ 
 */
 
-app.post("/order", async function(req, res) {
+app.post("/order", async function (req, res) {
     let order = req.body;
     try {
         const result = await prisma.order.create({
@@ -172,13 +187,13 @@ app.post("/order", async function(req, res) {
                     )
                 }
             }
-        })
-        res.json(result)
+        });
+        res.json(result);
     } catch (error) {
-        console.log(error)
-        res.status(500).json({error: "Could not create order"})
-    } 
-})
+        console.log(error);
+        res.status(500).json({ error: "Could not create order" });
+    }
+});
 
 app.get("/order", async function (req, res) {
     const orders = await prisma.order.findMany({
@@ -191,15 +206,15 @@ app.get("/order", async function (req, res) {
                 }
             }
         }
-    })
-    res.json(orders)
-})
+    });
+    res.json(orders);
+});
 
-app.get("/order/:id", async function(req, res) {
+app.get("/order/:id", async function (req, res) {
     const orderId = parseInt(req.params["id"]);
     try {
         const order = await prisma.order.findUniqueOrThrow({
-            where: {id: orderId},
+            where: { id: orderId },
             include: {
                 drinks: {
                     include: {
@@ -207,14 +222,14 @@ app.get("/order/:id", async function(req, res) {
                     }
                 }
             }
-        })
-        res.json(order)
+        });
+        res.json(order);
     } catch (error) {
-        res.status(404).json({error: "Order not found"})
+        res.status(404).json({ error: "Order not found" });
     }
-})
+});
 
-app.delete("/order/:id", async function(req, res) {
+app.delete("/order/:id", async function (req, res) {
     const id = parseInt(req.params["id"]);
     try {
         /*
@@ -226,16 +241,16 @@ app.delete("/order/:id", async function(req, res) {
         })*/
 
         const result = await prisma.order.delete({
-            where: {id: id}
-        })
+            where: { id: id }
+        });
         res.json(result);
     } catch (error) {
         console.log(error);
-        res.status(404).json({"error":"Order not found"});
+        res.status(404).json({ "error": "Order not found" });
     }
 });
 
-app.patch("/order/:id", async function(req, res) {
+app.patch("/order/:id", async function (req, res) {
     let id = req.params.id;
     let updatedOrder = req.body;
 
@@ -264,14 +279,14 @@ app.patch("/order/:id", async function(req, res) {
                 },
                 // TODO: orderFood auch wieder aufbauen
             }
-        })
-        res.json(result)
+        });
+        res.json(result);
     } catch (error) {
-        console.log(error)
-        res.status(404).json({error: "Failed to update order"});
+        console.log(error);
+        res.status(404).json({ error: "Failed to update order" });
     }
-})
+});
 
 app.listen(port, function () {
     console.log("Server started");
-})
+});
